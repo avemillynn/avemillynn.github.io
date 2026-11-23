@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Математический улей: Наименьшее общее кратное</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Fredoka+One&display=swap');
+
+        :root {
+            --bg: #fef9c3;
+            --text: #1e293b;
+            --muted: #64748b;
+            --primary: #eab308;
+            --primary-hover: #ca8a04;
+            --secondary: #1e293b;
+            --success: #10b981;
+            --error: #ef4444;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --honey: #f59e0b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: var(--bg);
+            background-image: radial-gradient(#fcd34d 1px, transparent 1px);
+            background-size: 30px 30px;
+            color: var(--text);
+            line-height: 1.5;
+            font-size: 24px;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: var(--card);
+            border-bottom: 4px solid var(--primary);
+            padding: 12px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            flex-shrink: 0;
+        }
+
+        .logo { 
+            font-family: 'Fredoka One', cursive; 
+            font-size: 1.8rem; 
+            color: var(--primary); 
+            display: flex; 
+            align-items: center; 
+            gap: 10px;
+        }
+        
+        .progress-container { 
+            flex: 1; 
+            max-width: 400px; 
+            margin: 0 30px; 
+            background: var(--border); 
+            height: 16px; 
+            border-radius: 10px; 
+            overflow: hidden; 
+        }
+        .progress-bar { 
+            height: 100%; 
+            background: var(--primary); 
+            width: 0%; 
+            transition: width 0.4s ease; 
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .score-badge { 
+            background: #fef08a; 
+            color: var(--secondary); 
+            padding: 10px 22px; 
+            border-radius: 25px; 
+            font-weight: 800; 
+            font-size: 1.5rem; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            transition: transform 0.2s; 
+            border: 3px solid var(--primary); 
+            white-space: nowrap;
+        }
+        .score-badge.pop { transform: scale(1.15); background: var(--honey); color: white; }
+
+        .timer-badge { 
+            background: var(--secondary); 
+            color: white; 
+            padding: 10px 22px; 
+            border-radius: 25px; 
+            font-weight: 800; 
+            font-size: 1.5rem; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            white-space: nowrap;
+        }
+
+        .slide-viewport {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .slide {
+            display: none;
+            width: 100%;
+            height: 100%;
+            padding: 20px 40px;
+            animation: fadeIn 0.4s ease;
+            overflow-y: auto;
+        }
+        .slide.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .slide-card {
+            background: var(--card);
+            border-radius: 22px;
+            padding: 35px 50px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            border: 4px solid var(--primary);
+            position: relative;
+            margin: 0 auto;
+            width: 100%;
+            max-width: 1300px;
+            min-height: calc(100% - 20px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .slide-card.top-aligned {
+            justify-content: flex-start;
+        }
+
+        .slide-number {
+            position: absolute;
+            top: -20px; left: 35px;
+            background: var(--secondary);
+            color: white;
+            padding: 6px 20px;
+            border-radius: 20px;
+            font-weight: 800;
+            font-size: 1.1rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        h1, h2, h3 { font-family: 'Fredoka One', cursive; color: var(--text); margin-bottom: 18px; line-height: 1.2; }
+        h1 { font-size: 3.2rem; color: var(--primary); text-align: center; }
+        h2 { font-size: 2.5rem; color: var(--primary); border-bottom: 3px dashed var(--primary); padding-bottom: 12px; }
+        h3 { font-size: 1.8rem; color: var(--text); margin-top: 20px; }
+        
+        p { margin-bottom: 15px; font-size: 1.4rem; }
+        ul, ol { margin-bottom: 15px; padding-left: 30px; }
+        li { margin-bottom: 10px; font-size: 1.4rem; }
+
+        .highlight { 
+            background: #fef08a; 
+            padding: 4px 12px; 
+            border-radius: 8px; 
+            font-weight: 700; 
+            border: 2px solid var(--primary); 
+            display: inline-block;
+        }
+
+        .formula { 
+            background: #fef9c3; 
+            border: 3px dashed var(--primary); 
+            padding: 22px; 
+            border-radius: 15px; 
+            text-align: center; 
+            font-size: 2rem; 
+            font-weight: 800; 
+            color: var(--secondary); 
+            margin: 22px 0; 
+            font-family: 'Fredoka One', cursive; 
+        }
+
+        .formula-inline { 
+            background: #fef9c3; 
+            border: 2px dashed var(--primary); 
+            padding: 12px; 
+            border-radius: 10px; 
+            text-align: center; 
+            font-weight: 800; 
+            color: var(--secondary); 
+            margin: 15px 0; 
+            font-size: 1.3rem;
+        }
+        
+        .example-box { 
+            background: #f8fafc; 
+            border-left: 8px solid var(--primary); 
+            padding: 22px 28px; 
+            border-radius: 0 15px 15px 0; 
+            margin: 22px 0; 
+            font-size: 1.4rem;
+        }
+        .warning-box { 
+            background: #fffbeb; 
+            border-left: 8px solid var(--honey); 
+            padding: 22px 28px; 
+            border-radius: 0 15px 15px 0; 
+            margin: 22px 0; 
+            font-size: 1.4rem;
+        }
+
+        .meme-box {
+            text-align: center;
+            margin: 25px 0;
+            padding: 25px;
+            background: #fef9c3;
+            border-radius: 15px;
+            border: 3px solid var(--primary);
+        }
+        .meme-box img { 
+            max-width: 100%; 
+            height: auto; 
+            border-radius: 15px; 
+            margin-bottom: 15px; 
+            max-height: 260px; 
+            object-fit: contain; 
+        }
+        .meme-box p { 
+            font-style: italic; 
+            font-weight: 700; 
+            color: var(--secondary); 
+            margin-bottom: 0; 
+            font-size: 1.6rem; 
+        }
+
+        .task-box {
+            border: 3px solid var(--border);
+            border-radius: 15px;
+            padding: 28px 28px 22px;
+            margin: 25px 0;
+            background: #fdfdfd;
+            position: relative;
+            font-size: 1.4rem;
+        }
+        .task-box::before {
+            content: "🐝 Задание в улье";
+            position: absolute;
+            top: -18px; left: 25px;
+            background: var(--card);
+            padding: 0 15px;
+            font-weight: 800;
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+        .task-item { margin-bottom: 18px; padding-bottom: 18px; border-bottom: 2px dashed var(--border); }
+        .task-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .blank { display: inline-block; min-width: 100px; border-bottom: 3px solid var(--secondary); text-align: center; font-weight: 700; color: var(--primary); }
+
+        /* Стили для нового слайда с алгоритмами */
+        .slide-subtitle { color: var(--muted); margin-top: -6px; font-style: italic; font-size: 1.3rem; }
+        .algo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+        .algo-card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 4px 14px rgba(0,0,0,0.08); }
+        .algo-decomp { border-top: 6px solid #ff9f43; }
+        .algo-formula-card { border-top: 6px solid #10b981; }
+        .algo-card h3 { margin: 0 0 12px; font-size: 1.4rem; color: var(--text); }
+        .algo-card ol { margin: 0 0 15px; padding-left: 25px; }
+        .algo-card li { margin: 8px 0; font-size: 1.3rem; }
+        .algo-example { font-size: 1.3rem; color: var(--muted); background: #f8fafc; padding: 12px; border-radius: 8px; }
+        
+        .think-box { background: #fef3c7; border-radius: 16px; padding: 20px 24px; margin-top: 20px; }
+        .think-box h3 { margin: 0 0 12px; color: #92400e; font-size: 1.5rem; }
+        details { margin: 10px 0; background: rgba(255,255,255,0.6); border-radius: 8px; padding: 10px 15px; }
+        summary { cursor: pointer; font-weight: 700; color: #b45309; font-size: 1.3rem; outline: none; }
+        details p { margin: 10px 0 0 0; font-size: 1.3rem; color: var(--text); }
+        .hint { margin-top: 20px; font-style: italic; color: var(--muted); text-align: center; font-size: 1.3rem; }
+        @media(max-width: 800px) { .algo-grid { grid-template-columns: 1fr; } }
+
+        .fizminutka {
+            background: var(--secondary);
+            color: white;
+            padding: 40px 50px;
+            border-radius: 20px;
+            text-align: center;
+            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            width: 100%;
+        }
+        .fizminutka h2 { color: var(--primary); border-color: var(--primary); font-size: 2.5rem; }
+        .fizminutka p { color: #e2e8f0; font-size: 1.5rem; }
+        .fizminutka ul { color: #e2e8f0; text-align: left; display: inline-block; margin-top: 20px; font-size: 1.4rem; }
+
+        .game-btn {
+            background: var(--primary);
+            color: var(--secondary);
+            border: none;
+            padding: 16px 36px;
+            font-size: 1.4rem;
+            font-weight: 800;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Nunito', sans-serif;
+            display: inline-block;
+            box-shadow: 0 6px 0 var(--primary-hover);
+            margin: 5px;
+            min-height: 56px;
+        }
+        .game-btn:hover { background: var(--primary-hover); }
+        .game-btn:active { transform: translateY(6px); box-shadow: 0 0 0 var(--primary-hover); }
+        .game-btn.secondary { background: var(--secondary); color: white; box-shadow: 0 6px 0 #0f172a; }
+        .game-btn.secondary:hover { background: #334155; }
+        .game-btn:disabled { background: #cbd5e0; box-shadow: 0 6px 0 #94a3b8; cursor: not-allowed; }
+
+        .options-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 18px; 
+            margin: 25px 0; 
+        }
+        .option-btn {
+            background: white; 
+            border: 4px solid var(--border); 
+            padding: 22px; 
+            font-size: 1.4rem;
+            font-weight: 700; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            transition: all 0.2s;
+            color: var(--text); 
+            font-family: 'Nunito', sans-serif; 
+            text-align: left;
+            min-height: 70px;
+        }
+        .option-btn:hover:not(:disabled) { border-color: var(--primary); background: #fef9c3; }
+        .option-btn.correct { background: #dcfce7; border-color: var(--success); color: #166534; }
+        .option-btn.wrong { background: #fee2e2; border-color: var(--error); color: #991b1b; }
+
+        .feedback { font-size: 1.4rem; font-weight: 700; text-align: center; min-height: 35px; margin-top: 15px; }
+
+        .nav-controls {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            padding: 18px 30px;
+            background: var(--card);
+            border-top: 4px solid var(--primary);
+            flex-shrink: 0;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.05);
+        }
+
+        #slideCounter {
+            font-weight: 800; 
+            color: var(--muted);
+            font-size: 1.4rem;
+            white-space: nowrap;
+        }
+
+        .confetti {
+            position: fixed;
+            width: 12px;
+            height: 12px;
+            animation: fall 3s linear forwards;
+            z-index: 999;
+            pointer-events: none;
+        }
+
+        @keyframes fall {
+            to { transform: translateY(100vh) rotate(720deg); }
+        }
+
+        .bounce {
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            60% { transform: translateY(-10px); }
+        }
+
+        .center-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">🐝 Математический улей</div>
+        <div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
+        <div class="header-right">
+            <div class="score-badge" id="scoreBadge">⭐ <span id="scoreValue">0</span></div>
+            <div class="timer-badge" id="timerDisplay">⏱ 03:00</div>
+        </div>
+    </header>
+
+    <div class="slide-viewport">
+        
+        <!-- Слайд 1: Титульный -->
+        <div class="slide active">
+            <div class="slide-card center-content">
+                <div class="slide-number">Слайд 1</div>
+                <h1>Наименьшее общее кратное<br>натуральных чисел</h1>
+                <p style="font-size: 1.8rem; color: var(--muted); margin-bottom: 25px;">Математический квест в пчелином улье</p>
+                <div style="font-size: 6rem;" class="bounce">🐝</div>
+                <p style="margin-top: 25px; font-weight: 700; font-size: 1.6rem;">Сегодня мы повторим тему НОК, поиграем и соберем нектар знаний!</p>
+            </div>
+        </div>
+
+        <!-- Слайд 2: План -->
+        <div class="slide">
+            <div class="slide-card top-aligned">
+                <div class="slide-number">Слайд 2</div>
+                <h2>🎯 План нашего полета</h2>
+                <ul style="font-size: 1.6rem; line-height: 2.2;">
+                    <li>Вспомним, что такое НОК и НОД.</li>
+                    <li>Проверим домашнее задание (найдем ошибки).</li>
+                    <li>Решим задачи в парах.</li>
+                    <li>Сделаем физкультминутку.</li>
+                    <li>Сыграем в математический баттл на время.</li>
+                    <li>Подведем итоги и решим дополнительные задачи.</li>
+                </ul>
+                <div class="warning-box" style="margin-top: 25px;">
+                    <p style="margin-bottom: 0; font-size: 1.5rem;"><strong>Правило улья:</strong> не бойся ошибаться! Ошибка — это шаг к пониманию.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Слайд 3: Блиц-опрос -->
+        <div class="slide">
+            <div class="slide-card top-aligned">
+                <div class="slide-number">Слайд 3</div>
+                <h2>⚡ Блиц-опрос</h2>
+                <p style="font-size: 1.5rem;">Ответь быстро, не задумываясь:</p>
+                <div class="example-box">
+                    <p style="font-size: 1.5rem;">1. Какое число называется кратным числу <em>a</em>?</p>
+                    <p style="font-size: 1.5rem;">2. Что такое НОД?</p>
+                    <p style="font-size: 1.5rem;">3. Что такое НОК?</p>
+                    <p style="font-size: 1.5rem;">4. Может ли НОК быть меньше самого числа?</p>
+                    <p style="font-size: 1.5rem; margin-bottom: 0;">5. Чему равен НОК взаимно простых чисел?</p>
+                </div>
+                <p style="font-size: 1.4rem;"><strong>Проверка:</strong> обсудите ответы с соседом по парте.</p>
+            </div>
+        </div>
+
+        <!-- Слайд 4: Мем -->
+        <div class="slide">
+            <div class="slide-card top-aligned">
+                <div class="slide-number">Слайд 4</div>
+                <h2>🐝 Математический мем</h2>
+                <div class="meme-box">
+                    <img src="https://img.icons8.com/color/480/000000/bee.png" alt="Пчела">
+                    <p>«Кто пчелок уважает, тот к ним не пристает!»</p>
+                </div>
+                <p style="text-align: center; color: var(--muted); font-size: 1.5rem;">А теперь серьезно: как этот мем связан с темой «Общие делители»? <br>(Подсказка: у пчел и цветов есть общий интерес — нектар 🍯)</p>
+            </div>
+        </div>
+
+        <!-- Слайд 5: НОД -->
+        <div class="slide">
+            <div class="slide-card top-aligned">
+                <div class="slide-number">Слайд 5</div>
+                <h2>🔍 Вспоминаем НОД</h2>
+                <p style="font-size: 1.5rem;"><strong>Наибольший общий делитель (НОД)</strong> — это самое большое число, на которое делятся оба числа без остатка.</p>
+                <div class="example-box">
+                    <p style="font-size: 1.4rem;"><strong>Пример:</strong> НОД(24, 36).</p>
+                    <p style="font-size: 1.4rem;">Делители 24: 1, 2, 3, 4, 6, 8, 12, 24.</p>
+                    <p style="font-size: 1.4rem;">Делители 36: 1, 2, 3, 4, 6, 9, 12, 18, 36.</p>
+                    <p style="font-size: 1.4rem; margin-bottom: 0;">Общие: 1, 2, 3, 4, 6, 12. Наибольший — <strong>12</strong>.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Слайд 6: НОК -->
+        <div class="slide">
+            <div class="slide-card top-aligned">
+                <div class="slide-number">Слайд 6</div>
+                <h2>🔍 Вспоминаем НОК</h2>
+                <p style="font-size: 1.5rem;"><strong>Наименьшее общее кратное (НОК)</strong> — это самое маленькое число, которое делится на оба числа без остатка.</p>
+                <div class="example-box">
+                    <p style="font-size: 1.4rem;"><strong>Пример:</strong> НОК(12, 18).</p>
+                    <p style="font-size: 1.4rem;">Кратные 12: 12, 24, <strong>36</strong>, 48...</p>
+                    <p style="font-size: 1.4rem;">Кратные 18: 18, <strong>36</strong>, 54...</p>
+                    <p style="font-size: 1.4rem; margin-bottom: 0;">НОК = <strong>36</strong>.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Слайд 7: Работа в парах -->
+        <div class="slide">
+            <div class="slide-card top-aligned">
+                <div class="slide-number">Слайд 7</div>
+                <h2>📝 Работа в парах</h2>
+                <p style="font-size: 1.5rem;">Заполните пропуски (можно записать в тетрадь).</p>
+                <div class="task-box">
+                    <div class="task-item">
+                        <p style="font-size: 1.5rem;"><strong>Задание 1.</strong> НОД(18, 24) = <span class="blank">?</span></p>
+                        <p style="font-size: 1.2rem; color: var(--muted); margin-bottom: 0;">Подсказка: выпиши делители каждого числа.</p>
+                    </div>
+                    <div class="task-item">
+                        <p style="font-size: 1.5rem;"><strong>Задание 2.</strong> НОК(10, 15) = <span class="blank">?</span></p>
+                        <p style="font-size: 1.2rem; color: var(--muted); margin-bottom: 0;">Подсказка: выпиши кратные.</p>
+                    </div>
+                    <div class="task-item">
+                        <p style="font-size: 1.5rem; margin-bottom: 0;"><strong>Задание 3.</strong> НОД(7, 11) = <span class="blank">?</span>, так как числа <span class="blank">?</span>.</p>
+                    </div>
+                </div>
+                <p style="text-align: center; font-weight: 700; color: var(--primary); font-size: 1.5rem; margin-top: 15px;">Проверка: 6, 30, 1 (взаимно простые).</p>
+            </div>
+        </div>
+
+        <!-- Слайд 8: Найди ошибку -->
+        <div class="slide">
+            <div class="slide-card top-aligned">
+                <div class="slide-number">Слайд 8</div>
+                <h2>🕵️ Найди ошибку</h2>
+                <p style="font-size: 1.5rem;">Ученик решал задачу и допустил ошибки. Давай исправим!</p>
+                <div class="task-box" style="border-color: var(--error);">
+                    <div class="task-item">
+                        <p style="font-size: 1.5rem;"><strong>Задача:</strong> Найти НОК(8, 12).</p>
+                        <p style="font-size: 1.5rem;"><em>Решение ученика:</em></p>
+                        <p style="font-size: 1.5rem;">8 = 2 · 2 · 2</p>
+                        <p style="font-size: 1.5rem;">12 = 2 · 2 · 3</p>
+                        <p style="font-size: 1.5rem; margin-bottom: 0;">НОК = 2 · 2 · 2 = 8</p>
+                    </div>
+                </div>
+                <div class="warning-box">
+                    <p style="margin-bottom: 0; font-size: 1.5rem;"><strong>В чем ошибка?</strong> Ученик взял только множители первого числа. Нужно добавить недостающую тройку: НОК = 2·2·2·3 = 24.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Слайд 9: Формула -->
+        <div class="slide">
+            <div class="slide-card top-aligned">
+                <div class="slide-number">Слайд 9</div>
+                <h2>🔗 Секретная формула</h2>
+                <p style="font-size: 1.5rem;">Если ты знаешь НОД, то НОК можно найти по формуле:</p>
+                <div class="formula">НОК(a, b) = (a × b) / НОД(a, b)</div>
+                <div class="example-box">
+                    <p style="font-size: 1.4rem;"><strong>Пример:</strong> НОД(24, 36) = 12.</p>
+                    <p style="font-size: 1.4rem; margin-bottom: 0;">НОК = (24 × 36) / 12 = 864 / 12 = <strong>72</strong>.</p>
+                </div>
+                <p style="font-size: 1.5rem;">Этот способ экономит время!</p>
+            </div>
+        </div>
+
+        <!-- Слайд 10: Проверь себя -->
+        <div class="slide">
+            <div class="slide-card top-aligned">
+                <div class="slide-number">Слайд 10</div>
+                <h2>📝 Проверь себя</h2>
+                <div class="task-box">
+                    <div class="task-item">
+                        <p style="font-size: 1.5rem;"><strong>Задание 4.</strong> Используя формулу, найди НОК(15, 20), если НОД(15, 20) = 5.</p>
+                        <p style="font-size: 1.5rem; margin-bottom: 0;">НОК = (15 × 20) / 5 = <span class="blank">?</span></p>
+                    </div>
+                    <div class="task-item">
+                        <p style="font-size: 1.5rem;"><strong>Задание 5.</strong> Придумай свою задачу на НОК и реши её.</p>
+                        <p style="color: var(--muted); font-size: 1.2rem; margin-bottom: 0;">(Например: автобусы отправляются с остановки каждые 10 и 15 минут. Когда они встретятся?)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- НОВЫЙ Слайд 11: Два алгоритма (Обобщение во внешней речи) -->
+        <div class="slide">
+            <div class="slide-card top-aligned">
+                <div class="slide-number">Слайд 11</div>
+                <h2>📋 Два алгоритма нахождения НОК</h2>
+                <p class="slide-subtitle">Проговори вслух соседу по парте! 🗣</p>
+
+                <div class="algo-grid">
+                    <div class="algo-card algo-decomp">
+                        <h3>🔢 Алгоритм 1: Разложение</h3>
+                        <ol>
+                            <li>Разложи оба числа на простые множители.</li>
+                            <li>Выпиши <b>все</b> множители первого числа.</li>
+                            <li>Добавь <b>недостающие</b> множители второго числа.</li>
+                            <li>Перемножь — получил НОК.</li>
+                        </ol>
+                        <div class="algo-example">8 = 2·2·2; &nbsp;12 = 2·2·<b>3</b> <br>→ НОК = 2·2·2·3 = <b>24</b></div>
+                    </div>
+
+                    <div class="algo-card algo-formula-card">
+                        <h3>🔗 Алгоритм 2: По формуле</h3>
+                        <ol>
+                            <li>Найди НОД(a, b).</li>
+                            <li>Перемножь числа: a × b.</li>
+                            <li>Раздели произведение на НОД.</li>
+                        </ol>
+                        <div class="formula-inline">НОК(a, b) = (a × b) / НОД(a, b)</div>
+                        <div class="algo-example">НОК(24, 36) = 864 / 12 = <b>72</b></div>
+                    </div>
+                </div>
+
+                <div class="think-box">
+                    <h3>🤔 Выбери рациональный способ</h3>
+                    <details>
+                        <summary>Какой способ быстрее для больших чисел?</summary>
+                        <p><b>Формула.</b> Не нужно выписывать длинные списки кратных и полностью раскладывать числа — достаточно найти НОД.</p>
+                    </details>
+                    <details>
+                        <summary>Какой способ безопаснее, если НОД неизвестен?</summary>
+                        <p><b>Разложение.</b> Оно не зависит от НОД и сразу показывает, какой множитель «потерялся» (как в задаче с ошибкой на слайде «Найди ошибку»).</p>
+                    </details>
+                </div>
+
+                <p class="hint">🐝 Правило улья: проверь свой ответ — делится ли он на оба числа без остатка?</p>
+            </div>
+        </div>
+
+        <!-- Слайд 12: Физкультминутка (был 11) -->
+        <div class="slide">
+            <div class="slide-card" style="justify-content: center;">
+                <div class="slide-number">Слайд 12</div>
+                <div class="fizminutka">
+                    <h2>🏃 Физкультминутка</h2>
+                    <p style="font-size: 1.6rem; margin: 20px 0;">Пчелки устали собирать нектар. Давай немного разомнемся!</p>
+                    <div style="font-size: 3rem; margin: 20px 0;">🐝 🐝 🐝</div>
+                    <p style="font-weight: 700; font-size: 1.5rem;">Повторяй движения за учителем:</p>
+                    <ul style="font-size: 1.4rem;">
+                        <li>Помаши крылышками (руками) — 5 раз.</li>
+                        <li>Покружись вокруг себя, как пчела — 2 раза.</li>
+                        <li>Присядь, как будто собираешь пыльцу — 3 раза.</li>
+                        <li>Потянись вверх к солнышку — 2 раза.</li>
+                    </ul>
+                    <p style="margin-top: 25px; margin-bottom: 0; font-size: 1.5rem;">Отдохнули? Продолжаем полет! 🚀</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Слайд 13: Переход к игре (был 12) -->
+        <div class="slide">
+            <div class="slide-card center-content">
+                <div class="slide-number">Слайд 13</div>
+                <h1>🎮 Готов к испытанию?</h1>
+                <p style="font-size: 1.6rem; max-width: 800px;">Сейчас мы проверим, насколько хорошо ты усвоил тему. За каждый правильный ответ — 100 очков! Но помни: у тебя есть таймер на 3 минуты! ⏱</p>
+                <div style="font-size: 6rem; margin: 25px 0;">🎯</div>
+            </div>
+        </div>
+
+        <!-- Слайд 14: Игра (был 13) -->
+        <div class="slide">
+            <div class="slide-card top-aligned">
+                <div class="slide-number">Слайд 14</div>
+                <h2>🎮 Математический баттл</h2>
+                <div id="quizContainer">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 18px; font-weight: 700; color: var(--muted); font-size: 1.3rem;">
+                        <span id="questionCounter">Вопрос 1 из 5</span>
+                        <span id="streakDisplay">🔥 Серия: 0</span>
+                    </div>
+                    <h3 id="questionText" style="min-height: 70px; font-size: 1.8rem;">Загрузка...</h3>
+                    <div class="options-grid" id="optionsGrid"></div>
+                    <div class="feedback" id="feedbackMsg"></div>
+                    <button class="game-btn" id="nextBtnGame" style="display: none; width: 100%; margin-top: 18px;" onclick="nextQuestion()">Дальше ➔</button>
+                </div>
+                <div id="resultContainer" style="display: none; text-align: center; padding: 25px 0;">
+                    <h2 style="justify-content: center; font-size: 2.5rem; border: none;">🏆 Игра окончена!</h2>
+                    <p style="font-size: 1.8rem;">Твой результат: <strong id="finalScore" style="color: var(--primary);">0</strong> очков</p>
+                    <p id="rankText" style="font-size: 1.5rem; margin-bottom: 25px;"></p>
+                    <button class="game-btn secondary" style="width: 100%;" onclick="restartGame()">Играть снова 🔄</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Слайд 15: Итоги (был 14) -->
+        <div class="slide">
+            <div class="slide-card top-aligned">
+                <div class="slide-number">Слайд 15</div>
+                <h2>💭 Подводим итоги</h2>
+                <p style="font-size: 1.5rem;">Ответь на вопросы, чтобы закрепить знания:</p>
+                <div class="task-box" style="border-color: var(--primary);">
+                    <div class="task-item"><p style="font-size: 1.5rem; margin-bottom: 0;"><strong>1.</strong> Чем отличается НОД от НОК?</p></div>
+                    <div class="task-item"><p style="font-size: 1.5rem; margin-bottom: 0;"><strong>2.</strong> В каком случае НОК двух чисел равен их произведению?</p></div>
+                    <div class="task-item"><p style="font-size: 1.5rem; margin-bottom: 0;"><strong>3.</strong> Как найти НОК, если известен НОД?</p></div>
+                    <div class="task-item"><p style="font-size: 1.5rem; margin-bottom: 0;"><strong>4.</strong> Приведи пример задачи из жизни, где нужно найти НОК.</p></div>
+                </div>
+                <p style="text-align: center; font-weight: 700; color: var(--primary); font-size: 1.5rem; margin-top: 20px; margin-bottom: 0;">Обсуди ответы с учителем и одноклассниками.</p>
+            </div>
+        </div>
+
+        <!-- Слайд 16: Доп. задачи (был 15) -->
+        <div class="slide">
+            <div class="slide-card top-aligned">
+                <div class="slide-number">Слайд 16</div>
+                <h2>🍯 Дополнительные задачи</h2>
+                <div class="task-box">
+                    <div class="task-item">
+                        <p style="font-size: 1.5rem; margin-bottom: 0;"><strong>Задача 1.</strong> Пчела Майя летает к цветку А каждые 12 минут, а к цветку Б — каждые 18 минут. Она вылетела к обоим цветкам одновременно. Через сколько минут она снова прилетит к ним одновременно?</p>
+                    </div>
+                    <div class="task-item">
+                        <p style="font-size: 1.5rem; margin-bottom: 0;"><strong>Задача 2.</strong> В улье есть две рамки с сотами. На одной рамке соты размером 4 мм, на другой — 6 мм. Какое наименьшее расстояние должно быть между рамками, чтобы соты совпадали?</p>
+                    </div>
+                    <div class="task-item">
+                        <p style="font-size: 1.5rem; margin-bottom: 0;"><strong>Задача 3.</strong> Три пчелы вылетают из улья одновременно. Первая возвращается через 15 минут, вторая — через 20 минут, третья — через 30 минут. Через сколько минут они встретятся в улье все вместе?</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Слайд 17: Финал (был 16) -->
+        <div class="slide">
+            <div class="slide-card center-content">
+                <div class="slide-number">Слайд 17</div>
+                <h1>Спасибо за урок!</h1>
+                <p style="font-size: 1.6rem; color: var(--muted); margin: 20px 0;">Ты отлично потрудился сегодня.</p>
+                <div style="font-size: 6rem;" class="bounce">🎉🐝</div>
+                <p style="margin-top: 25px; font-weight: 700; font-size: 1.6rem;">Помни: математика — это просто, если понимать правила!</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Навигация -->
+    <div class="nav-controls">
+        <button class="game-btn" id="prevBtn" onclick="changeSlide(-1)" disabled>← Назад</button>
+        <span id="slideCounter">1 / 17</span>
+        <button class="game-btn" id="nextBtnSlide" onclick="changeSlide(1)">Вперед →</button>
+    </div>
+
+    <script>
+        // --- Слайды ---
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        const slideCounter = document.getElementById('slideCounter');
+        const progressBar = document.getElementById('progressBar');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtnSlide = document.getElementById('nextBtnSlide');
+
+        function showSlide(index) {
+            slides.forEach(s => s.classList.remove('active'));
+            slides[index].classList.add('active');
+            slideCounter.textContent = `${index + 1} / ${totalSlides}`;
+            
+            const progress = ((index + 1) / totalSlides) * 100;
+            progressBar.style.width = progress + '%';
+
+            prevBtn.disabled = index === 0;
+            if (index === totalSlides - 1) {
+                nextBtnSlide.disabled = true;
+                nextBtnSlide.textContent = "Конец";
+            } else {
+                nextBtnSlide.disabled = false;
+                nextBtnSlide.textContent = "Вперед →";
+            }
+
+            // ОБНОВЛЕНО: Игра теперь на 14-м слайде (индекс 13)
+            if (index === 13 && !gameInitialized) {
+                loadQuestion();
+                gameInitialized = true;
+            }
+        }
+
+        function changeSlide(direction) {
+            currentSlide += direction;
+            if (currentSlide < 0) currentSlide = 0;
+            if (currentSlide >= totalSlides) currentSlide = totalSlides - 1;
+            showSlide(currentSlide);
+        }
+
+        // --- Игра ---
+        let score = 0;
+        let currentQuestion = 0;
+        let streak = 0;
+        let answered = false;
+        let gameInitialized = false;
+        let timerInterval;
+        let timeLeft = 180;
+
+        const quizData = [
+            { question: "Чему равен НОК(6, 8)?", options: ["24", "48", "14", "16"], correct: 0 },
+            { question: "Найди НОК(15, 20)", options: ["30", "60", "45", "75"], correct: 1 },
+            { question: "Чему равен НОК взаимно простых чисел 7 и 10?", options: ["1", "17", "70", "35"], correct: 2 },
+            { question: "НОК(12, 18) равен...", options: ["6", "24", "36", "72"], correct: 2 },
+            { question: "Если НОД(a,b)=5, a*b=150, то НОК(a,b) равен:", options: ["30", "25", "15", "10"], correct: 0 }
+        ];
+
+        const questionText = document.getElementById('questionText');
+        const optionsGrid = document.getElementById('optionsGrid');
+        const feedbackMsg = document.getElementById('feedbackMsg');
+        const nextBtnGame = document.getElementById('nextBtnGame');
+        const questionCounter = document.getElementById('questionCounter');
+        const streakDisplay = document.getElementById('streakDisplay');
+        const scoreValue = document.getElementById('scoreValue');
+        const scoreBadge = document.getElementById('scoreBadge');
+        const quizContainer = document.getElementById('quizContainer');
+        const resultContainer = document.getElementById('resultContainer');
+        const finalScore = document.getElementById('finalScore');
+        const rankText = document.getElementById('rankText');
+        const timerDisplay = document.getElementById('timerDisplay');
+
+        function updateScore(points) {
+            score += points;
+            scoreValue.textContent = score;
+            scoreBadge.classList.add('pop');
+            setTimeout(() => scoreBadge.classList.remove('pop'), 300);
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+
+        function startTimer() {
+            timeLeft = 180;
+            timerDisplay.textContent = `⏱ ${formatTime(timeLeft)}`;
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = `⏱ ${formatTime(timeLeft)}`;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    showResults();
+                }
+            }, 1000);
+        }
+
+        function loadQuestion() {
+            if (currentQuestion === 0) {
+                startTimer();
+            }
+            answered = false;
+            feedbackMsg.textContent = '';
+            nextBtnGame.style.display = 'none';
+            
+            const q = quizData[currentQuestion];
+            questionText.textContent = q.question;
+            questionCounter.textContent = `Вопрос ${currentQuestion + 1} из ${quizData.length}`;
+            streakDisplay.textContent = `🔥 Серия: ${streak}`;
+            optionsGrid.innerHTML = '';
+
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = opt;
+                btn.onclick = () => checkAnswer(index, btn);
+                optionsGrid.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selectedIndex, clickedBtn) {
+            if (answered || timeLeft <= 0) return;
+            answered = true;
+
+            const q = quizData[currentQuestion];
+            const allBtns = optionsGrid.querySelectorAll('.option-btn');
+            allBtns.forEach(b => b.disabled = true);
+
+            if (selectedIndex === q.correct) {
+                clickedBtn.classList.add('correct');
+                feedbackMsg.textContent = "Верно! +100 очков ⭐";
+                feedbackMsg.style.color = "var(--success)";
+                streak++;
+                updateScore(100);
+            } else {
+                clickedBtn.classList.add('wrong');
+                allBtns[q.correct].classList.add('correct');
+                feedbackMsg.textContent = "Ой! Правильный ответ подсвечен зеленым.";
+                feedbackMsg.style.color = "var(--error)";
+                streak = 0;
+            }
+
+            nextBtnGame.style.display = 'block';
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            if (currentQuestion < quizData.length && timeLeft > 0) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            clearInterval(timerInterval);
+            quizContainer.style.display = 'none';
+            resultContainer.style.display = 'block';
+            finalScore.textContent = score;
+            
+            if (score >= 400) {
+                rankText.innerHTML = "Ты — <strong>Королева (или Король) Пчелиного Улья НОК!</strong> 👑🐝<br>Весь мёд знаний теперь твой!";
+                createConfetti();
+            } else if (score >= 200) {
+                rankText.innerHTML = "Ты — <strong>Опытный сборщик нектара знаний!</strong> 🌸🐝<br>Отличный результат, соты строятся крепко!";
+            } else {
+                rankText.innerHTML = "Ты — <strong>Молодая пчёлка-стажёр!</strong> 🐝🌱<br>Не расстраивайся, даже великие ульи начинались с одной ячейки. Повтори теорию и попробуй снова!";
+            }
+        }
+
+        function restartGame() {
+            score = 0;
+            currentQuestion = 0;
+            streak = 0;
+            scoreValue.textContent = 0;
+            quizContainer.style.display = 'block';
+            resultContainer.style.display = 'none';
+            clearInterval(timerInterval);
+            loadQuestion();
+        }
+
+        function createConfetti() {
+            const colors = ['#eab308', '#f59e0b', '#1e293b', '#10b981'];
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                document.body.appendChild(confetti);
+                setTimeout(() => confetti.remove(), 4000);
+            }
+        }
+
+        // Управление с клавиатуры
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') changeSlide(1);
+            if (e.key === 'ArrowLeft') changeSlide(-1);
+        });
+
+        // Инициализация
+        showSlide(0);
+    </script>
+</body>
+</html>
